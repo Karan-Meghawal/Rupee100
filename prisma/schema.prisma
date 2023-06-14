@@ -1,0 +1,820 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+    provider        = "prisma-client-js"
+    previewFeatures = ["extendedWhereUnique", "fullTextIndex", "filteredRelationCount"]
+}
+
+datasource db {
+    provider = "mongodb"
+    url      = env("DATABASE_URL")
+}
+
+// ============================ User =====================================
+model User {
+    id            String             @id @default(auto()) @map("_id") @db.ObjectId
+    userId        Int                @unique
+    userName      String             @unique
+    email         String
+    firstName     String
+    lastName      String
+    avatar        String?
+    password      String
+    role          User_Role          @default(user)
+    status        User_Status        @default(active)
+    twoFA         Boolean            @default(false)
+    kyc           User_Kyc           @default(unverified)
+    contact       User_Contact
+    referralId    Int?
+    placementId   Int?
+    placementSide User_PlacementSide
+    lft           Int
+    rgt           Int
+    leftCount     Int                @default(0)
+    rightCount    Int                @default(0)
+    pairCount     Int                @default(0)
+    leftId        Int?
+    rightId       Int?
+    kycData       Json?
+    planId        String?            @db.ObjectId
+    createdAt     DateTime           @default(now())
+    updatedAt     DateTime           @updatedAt
+
+    referral User?  @relation("Referral", fields: [referralId], references: [userId], onDelete: NoAction, onUpdate: NoAction)
+    referred User[] @relation("Referral")
+
+    placement  User?  @relation("Placement", fields: [placementId], references: [userId], onDelete: NoAction, onUpdate: NoAction)
+    placements User[] @relation("Placement")
+
+    Transaction             Transaction[]
+    UserKyc                 UserKyc[]
+    ReferralIncome          ReferralIncome[]
+    TicketMessages          TicketMessages[]
+    Ticket                  Ticket[]
+    TransferPaymentSender   TransferPayment[] @relation("TransferPaymentSender")
+    TransferPaymentReceiver TransferPayment[] @relation("TransferPaymentReceiver")
+    Withdraw                Withdraw[]
+    Deposit                 Deposit[]
+    PlanHistory             PlanHistory[]
+    Roi                     Roi[]
+}
+
+enum User_Role {
+    user
+    admin
+}
+
+enum User_Status {
+    active
+    blocked
+}
+
+enum User_Kyc {
+    unverified
+    rejected
+    verified
+    pending
+}
+
+enum User_PlacementSide {
+    left
+    right
+}
+
+type User_Contact {
+    address      String?
+    country      String?
+    city         String?
+    state        String?
+    pinCode      Int?
+    mobileNumber String
+}
+
+// ============================ Faq =====================================
+
+model Faq {
+    id        String   @id @default(auto()) @map("_id") @db.ObjectId
+    question  String
+    answer    String
+    createdAt DateTime @default(now())
+}
+
+// ============================ Pages:Home =====================================
+
+model Page_Home {
+    id               String                     @id @default(auto()) @map("_id") @db.ObjectId
+    hero             Page_Home_Hero
+    services         Page_Home_Service[]
+    howItWork        Page_Home_HowItWork[]
+    servicesSection  Page_Home_ServicesSection
+    howItWorkSection Page_Home_HowItWorkSection
+}
+
+type Page_Home_ServicesSection {
+    heading    String
+    subheading String?
+}
+
+type Page_Home_HowItWorkSection {
+    heading    String
+    subheading String?
+}
+
+type Page_Home_Hero {
+    title       String
+    description String
+    video       String
+    button      String
+}
+
+type Page_Home_Service {
+    id          String @default(cuid())
+    icon        String
+    heading     String
+    description String
+}
+
+type Page_Home_HowItWork {
+    id          String @default(cuid())
+    image       String
+    heading     String
+    description String
+}
+
+// ============================ Pages:About Us =====================================
+
+model Page_AboutUs {
+    id         String                  @id @default(auto()) @map("_id") @db.ObjectId
+    hero       Page_AboutUs_Hero
+    ourMission Page_AboutUs_OurMission
+    footer     String
+}
+
+type Page_AboutUs_Hero {
+    title       String
+    subtitle    String
+    description String
+    image       String
+    features    Page_AboutUs_Hero_Feature[]
+}
+
+type Page_AboutUs_Hero_Feature {
+    feature String
+}
+
+type Page_AboutUs_OurMission {
+    title       String
+    description String
+    image       String
+}
+
+// ============================ Section =====================================
+
+model Section {
+    id                 String                     @id @default(auto()) @map("_id") @db.ObjectId
+    contactUs          Section_ContactUs
+    termsAndConditions Section_TermsAndConditions
+    faq                Section_Faq
+    privacyPolicy      Section_PrivacyPolicy
+    commissionPolicy   Section_CommissionPolicy
+    refundPolicy       Section_RefundPolicy
+    socialLinks        Section_SocialLinks
+}
+
+type Section_SocialLinks {
+    discord   String?
+    facebook  String?
+    instagram String?
+    linkedin  String?
+    telegram  String?
+    twitter   String?
+    whatsapp  String?
+    youtube   String?
+}
+
+type Section_ContactUs {
+    title    String
+    subtitle String
+    whatsapp String
+    email    String
+    location String
+}
+
+type Section_TermsAndConditions {
+    title       String
+    description String
+}
+
+type Section_Faq {
+    title    String
+    subtitle String
+}
+
+type Section_PrivacyPolicy {
+    title       String
+    description String
+}
+
+type Section_CommissionPolicy {
+    title       String
+    description String
+}
+
+type Section_RefundPolicy {
+    title       String
+    description String
+}
+
+// ============================ LoginSession =====================================
+
+model LoginSession {
+    id        String              @id @default(auto()) @map("_id") @db.ObjectId
+    userId    Int
+    token     String              @unique
+    validTill DateTime
+    ip        String?
+    country   String?
+    region    String?
+    city      String?
+    agent     String?
+    browser   String?
+    os        String?
+    status    LoginSession_Status @default(active)
+    createdAt DateTime            @default(now())
+}
+
+enum LoginSession_Status {
+    active
+    expired
+}
+
+// ============================ Otp =====================================
+
+model Otp {
+    id        String      @id @default(auto()) @map("_id") @db.ObjectId
+    otp       Int
+    email     String
+    validTill DateTime
+    purpose   Otp_Purpose
+
+    @@unique([otp, email, purpose])
+}
+
+enum Otp_Purpose {
+    register
+    resetPassword
+    twoFA
+    login
+    changePassword
+}
+
+// ============================ Setting =====================================
+
+model Setting {
+    id                String                   @id @default(auto()) @map("_id") @db.ObjectId
+    mail              Setting_Mail?
+    logo              String
+    fullLogo          String
+    favicon           String
+    appName           String
+    currency          String
+    currencyPosition  Setting_CurrencyPosition
+    country           String
+    timezone          String
+    notice            String
+    emailAccountLimit Int
+    configuration     Setting_Configuration
+    transferPayment   Setting_TransferPayment
+    emailPreferences  Setting_EmailPreferences
+}
+
+type Setting_TransferPayment {
+    charge Float
+    type   Setting_TransferPayment_Type
+}
+
+enum Setting_TransferPayment_Type {
+    fixed
+    percent
+}
+
+enum Setting_Mail_Encryption {
+    ssl
+    tls
+}
+
+enum Setting_CurrencyPosition {
+    prefix
+    suffix
+}
+
+type Setting_Mail {
+    encryption Setting_Mail_Encryption
+    host       String
+    userName   String
+    port       Int
+    password   String
+}
+
+type Setting_EmailPreferences {
+    paymentDeposit      Boolean
+    paymentTransfer     Boolean
+    paymentWithdraw     Boolean
+    registrationSuccess Boolean
+}
+
+type Setting_Configuration {
+    contactDetails  Boolean
+    kycVerification Boolean
+    registration    Boolean
+}
+
+// ============================ Ticket =====================================
+
+model Ticket {
+    id        String           @id @default(auto()) @map("_id") @db.ObjectId
+    userId    Int
+    subject   String
+    status    Ticket_Status    @default(pending)
+    closedBy  User_Role?
+    messages  TicketMessages[] @relation()
+    createdAt DateTime         @default(now())
+    updatedAt DateTime         @updatedAt
+
+    user User @relation(fields: [userId], references: [userId])
+
+    @@fulltext([userId, subject, status, createdAt, updatedAt])
+}
+
+enum Ticket_Status {
+    pending
+    active
+    closed
+}
+
+model TicketMessages {
+    id        String   @id @default(auto()) @map("_id") @db.ObjectId
+    userId    Int
+    message   String
+    files     String[]
+    ticketId  String   @db.ObjectId
+    createdAt DateTime @default(now())
+
+    ticket Ticket @relation(fields: [ticketId], references: [id])
+    user   User   @relation(fields: [userId], references: [userId])
+}
+
+// ============================ Transaction =====================================
+
+model Transaction {
+    id          String               @id @default(auto()) @map("_id") @db.ObjectId
+    userId      Int
+    amount      Float
+    charge      Float
+    netAmount   Float
+    category    Transaction_Category
+    status      Transaction_Status
+    description String
+    createdAt   DateTime             @default(now())
+    updatedAt   DateTime             @updatedAt
+
+    user User @relation(fields: [userId], references: [userId])
+}
+
+enum Transaction_Category {
+    referralIncome
+    transferred
+    received
+    deposit
+    withdraw
+    planPurchased
+    roi
+}
+
+enum Transaction_Status {
+    pending
+    credit
+    debit
+    failed
+    review
+}
+
+// ============================ User Kyc =====================================
+
+model UserKyc {
+    id        String         @id @default(auto()) @map("_id") @db.ObjectId
+    userId    Int
+    status    UserKyc_Status @default(pending)
+    message   String?
+    createdAt DateTime       @default(now())
+    updatedAt DateTime       @updatedAt
+    user      User           @relation(fields: [userId], references: [userId])
+}
+
+enum UserKyc_Status {
+    pending
+    verified
+    rejected
+}
+
+// ============================ Referral Income =====================================
+
+model ReferralIncome {
+    id            String                @id @default(auto()) @map("_id") @db.ObjectId
+    userId        Int                   @unique
+    referralId    Int
+    amount        Float
+    status        ReferralIncome_Status @default(pending)
+    createdAt     DateTime              @default(now())
+    updatedAt     DateTime              @updatedAt
+    transactionId String?               @db.ObjectId
+
+    user User @relation(fields: [userId], references: [userId])
+}
+
+enum ReferralIncome_Status {
+    pending
+    credit
+}
+
+// ============================ Roi  =====================================
+
+model Roi {
+    id                    String     @id @default(auto()) @map("_id") @db.ObjectId
+    userId                Int
+    amount                Float
+    investment            Float
+    planName              String
+    transactionId         String     @unique @db.ObjectId
+    purchaseTransactionId String     @db.ObjectId
+    status                Roi_Status @default(credit)
+    createdAt             DateTime   @default(now())
+
+    user User @relation(fields: [userId], references: [userId])
+}
+
+enum Roi_Status {
+    credit
+}
+
+// ============================ Transfer Payment =====================================
+
+model TransferPayment {
+    id            String                 @id @default(auto()) @map("_id") @db.ObjectId
+    userId        Int
+    agentId       Int
+    amount        Float
+    charge        Float
+    netAmount     Float
+    transactionId String                 @unique @db.ObjectId
+    action        TransferPayment_Action
+    createdAt     DateTime               @default(now())
+
+    user  User @relation("TransferPaymentSender", fields: [userId], references: [userId])
+    agent User @relation("TransferPaymentReceiver", fields: [agentId], references: [userId])
+}
+
+enum TransferPayment_Action {
+    transferred
+    received
+}
+
+// ============================ Kyc =====================================
+
+model KycForm {
+    id              String                    @id @default(auto()) @map("_id") @db.ObjectId
+    label           String
+    inputType       KycForm_InputType
+    required        Boolean
+    dropdownOptions KycForm_DropdownOptions[]
+    fileExtensions  KycForm_FileExtensions[]
+    createdAt       DateTime                  @default(now())
+}
+
+enum KycForm_InputType {
+    input
+    date
+    textarea
+    file
+    dropdown
+}
+
+type KycForm_DropdownOptions {
+    option String
+}
+
+enum KycForm_FileExtensions {
+    JPG
+    JPEG
+    PNG
+    WEBP
+    PDF
+    DOC
+    DOCX
+    TXT
+    XLS
+    XLSX
+    CSV
+}
+
+// ============================ Withdraw Payment =====================================
+
+model WithdrawMethod {
+    id             String                    @id @default(auto()) @map("_id") @db.ObjectId
+    name           String
+    logo           String
+    processingTime String
+    status         WithdrawMethod_Status
+    minWithdraw    Float
+    maxWithdraw    Float
+    charge         Float
+    chargeType     WithdrawMethod_ChargeType
+    details        WithdrawMethod_Details[]
+    createdAt      DateTime                  @default(now())
+    updatedAt      DateTime                  @updatedAt
+
+    userWithdrawMethods UserWithdrawMethod[]
+}
+
+enum WithdrawMethod_Status {
+    active
+    inactive
+    deleted
+}
+
+enum WithdrawMethod_ChargeType {
+    fixed
+    percent
+}
+
+type WithdrawMethod_Details {
+    name            String
+    label           String
+    required        Boolean
+    inputType       WithdrawMethod_InputType
+    fileExtensions  WithdrawMethod_FileExtensions[]
+    dropdownOptions WithdrawMethod_DropdownOptions[]
+}
+
+enum WithdrawMethod_InputType {
+    input
+    date
+    textarea
+    file
+    dropdown
+}
+
+type WithdrawMethod_DropdownOptions {
+    option String
+}
+
+enum WithdrawMethod_FileExtensions {
+    JPG
+    JPEG
+    PNG
+    WEBP
+    PDF
+    DOC
+    DOCX
+    TXT
+    XLS
+    XLSX
+    CSV
+}
+
+// ============================ User Withdraw Methods =====================================
+
+model UserWithdrawMethod {
+    id        String         @id @default(auto()) @map("_id") @db.ObjectId
+    methodId  String         @db.ObjectId
+    method    WithdrawMethod @relation(fields: [methodId], references: [id], onDelete: Cascade)
+    details   Json
+    userId    Int
+    createdAt DateTime       @default(now())
+    updatedAt DateTime       @updatedAt
+
+    @@unique([userId, methodId])
+}
+
+// ============================ User Withdraws =====================================
+
+model Withdraw {
+    id            String             @id @default(auto()) @map("_id") @db.ObjectId
+    userId        Int
+    transactionId String             @unique @db.ObjectId
+    amount        Float
+    charge        Float
+    netAmount     Float
+    details       Withdraw_Details[]
+    status        Withdraw_Status
+    message       String?
+    actionBy      User_Role
+    createdAt     DateTime           @default(now())
+    updatedAt     DateTime           @updatedAt
+    method        Withdraw_Method
+
+    user User @relation(fields: [userId], references: [userId])
+}
+
+type Withdraw_Method {
+    logo       String
+    name       String
+    charge     Float
+    chargeType WithdrawMethod_ChargeType
+}
+
+enum Withdraw_Status {
+    pending
+    rejected
+    success
+}
+
+type Withdraw_Details {
+    value     String
+    name      String
+    label     String
+    inputType WithdrawMethod_InputType
+}
+
+// ============================ Plan =====================================
+
+model Plan {
+    id             String      @id @default(auto()) @map("_id") @db.ObjectId
+    name           String
+    description    String
+    referralIncome Float
+    minInvestment  Float
+    maxInvestment  Float
+    minRoi         Float
+    maxRoi         Float
+    validity       Int
+    status         Plan_Status
+    isPopular      Boolean     @default(false)
+    createdAt      DateTime    @default(now())
+}
+
+enum Plan_Status {
+    active
+    inactive
+}
+
+// ============================ Manual Deposit Method =====================================
+
+model ManualDepositMethod {
+    id             String                         @id @default(auto()) @map("_id") @db.ObjectId
+    name           String
+    logo           String
+    processingTime String
+    status         ManualDepositMethod_Status
+    minDeposit     Float
+    maxDeposit     Float
+    charge         Float
+    chargeType     ManualDepositMethod_ChargeType
+    details        ManualDepositMethod_Detail[]
+    createdAt      DateTime                       @default(now())
+}
+
+enum ManualDepositMethod_Status {
+    active
+    inactive
+}
+
+enum ManualDepositMethod_ChargeType {
+    fixed
+    percent
+}
+
+type ManualDepositMethod_Detail {
+    label String
+    value String
+    type  ManualDepositMethod_Detail_Type
+}
+
+enum ManualDepositMethod_Detail_Type {
+    input
+    image
+}
+
+// ============================ Instant Deposit Method =====================================
+
+model InstantDepositMethod {
+    id         String                          @id @default(auto()) @map("_id") @db.ObjectId
+    uniqueId   InstantDepositMethod_UniqueId   @unique
+    name       String
+    logo       String
+    fullLogo   String
+    config     InstantDepositMethod_Config[]
+    details    Json
+    status     InstantDepositMethod_Status
+    charge     Float
+    chargeType InstantDepositMethod_chargeType
+    createdAt  DateTime                        @default(now())
+}
+
+enum InstantDepositMethod_chargeType {
+    fixed
+    percent
+}
+
+enum InstantDepositMethod_UniqueId {
+    coinbase
+    coingate
+}
+
+enum InstantDepositMethod_Status {
+    active
+    inactive
+}
+
+type InstantDepositMethod_Config {
+    key     String
+    label   String
+    options String[]
+}
+
+// ============================ Deposits =====================================
+
+model Deposit {
+    id            String             @id @default(auto()) @map("_id") @db.ObjectId
+    userId        Int
+    amount        Float
+    charge        Float
+    chargeType    Deposit_ChargeType
+    netAmount     Float
+    method        Deposit_Method
+    details       Deposit_Details?
+    message       String?
+    status        Deposit_Status
+    type          Deposit_Type
+    transactionId String             @unique @db.ObjectId
+    createdAt     DateTime           @default(now())
+    updatedAt     DateTime           @updatedAt
+    coinbaseId    String?
+    coingateId    String?
+
+    user User @relation(fields: [userId], references: [userId])
+}
+
+enum Deposit_Type {
+    manual
+    instant
+    admin
+}
+
+enum Deposit_Status {
+    pending
+    credit
+    approved
+    cancelled
+    failed
+    review
+    rejected
+}
+
+enum Deposit_ChargeType {
+    percent
+    fixed
+}
+
+type Deposit_Method {
+    name String
+    logo String
+}
+
+type Deposit_Details {
+    method ManualDepositMethod_Detail[]
+    user   Deposit_UserDetail
+}
+
+type Deposit_UserDetail {
+    amount          Float
+    transactionId   String
+    transactionDate DateTime
+    paymentImage    String
+}
+
+// ============================ Plan History =====================================
+
+model PlanHistory {
+    id             String             @id @default(auto()) @map("_id") @db.ObjectId
+    userId         Int
+    planId         String             @db.ObjectId
+    planName       String
+    transactionId  String             @unique @db.ObjectId
+    investment     Float
+    validity       Int
+    referralIncome Float              @default(0)
+    roiIncome      Float              @default(0)
+    status         PlanHistory_Status @default(active)
+    createdAt      DateTime           @default(now())
+    validTill      DateTime
+    expiredAt      DateTime?
+
+    user User @relation(fields: [userId], references: [userId])
+}
+
+enum PlanHistory_Status {
+    active
+    expired
+}
